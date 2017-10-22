@@ -1,0 +1,118 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Stack to keep security groups in sync with Siteshield|Cloudflare"
+
+Parameters:
+
+  S3Bucket:
+    Description: "Name of S3 bucket which contains zip file with code for lambda functions"
+    Type: "String"
+  S3Key:
+    Description: "Key in S3 bucket to zip file with code for lambda functions"
+    Type: "String"
+  SSMSource:
+    Description: "Site/Service to work on (KMS key selector/prefix)"
+    Type: "String"
+    Default: "css"
+  AccountId:
+    Description: "AWS account ID"
+    Type: "String"
+  KeyId:
+    Description: The key
+    Type: "String"
+  Region:
+    Description: The AWS region to work in
+    Type: "String"
+    Default: "eu-west-1"
+  FunctionName:
+    Description: "The lambda function's name"
+    Type: "String"
+
+Resources:
+
+  LambdaFunctionCSS:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: "handler.Handle"
+      Role: !GetAtt CSSRole.Arn
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      FunctionName: !Sub "CSS-${SSMSource}"
+      Runtime: "python2.7"
+      Environment:
+        Variables:
+          SSM_SOURCE: !Ref SSMSource
+      Timeout: "300"
+
+  CSSRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "CSSPolicy"
+          PolicyDocument:
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:DescribeParameters"
+                Resource : "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ssm:GetParameters"
+                Resource :
+                  - !Sub "arn:aws:ssm:${Region}:${AccountId}:parameter/${SSMSource}_*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "kms:Decrypt"
+                Resource :
+                  - !Sub "arn:aws:kms:${Region}:${AccountId}:key/${KeyId}"
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "ec2:DescribeSecurityGroups"
+                  - "ec2:RevokeSecurityGroupIngress"
+                  - "ec2:AuthorizeSecurityGroupIngress"
+                Resource: "*"
+                # TBD: A stack parameter might be introduced to limit to desired secgroup
+
+  CSSCron:
+    Type: "AWS::Events::Rule"
+    DependsOn: "LambdaFunctionCSS"
+    Properties:
+      Description: "Periodically update SiteShield/Cloudflare SecurityGroup"
+      Name: !Sub "LambdaFunctionCSS-${SSMSource}-Cron"
+      ScheduleExpression: "cron(15 9 * * ? *)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn: !GetAtt LambdaFunctionCSS.Arn
+          Id: !Sub "LambdaFunctionCSS-Cron-${SSMSource}"
+
+  EventTriggerPermissionCron:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !GetAtt LambdaFunctionCSS.Arn
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt CSSCron.Arn

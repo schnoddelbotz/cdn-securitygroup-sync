@@ -1,0 +1,6 @@
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+dependencies
