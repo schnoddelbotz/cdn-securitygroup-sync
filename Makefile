@@ -3,9 +3,9 @@
 
 # These arguments are required for successful S3 upload and stack deployment
 AWS_REGION ?= eu-west-1
-AWS_ACCOUNT_ID ?= 
+AWS_ACCOUNT_ID ?=
 SSM_KEY_ID ?=
-S3_BUCKET ?= 
+S3_BUCKET ?=
 SSM_KEY_PREFIX ?= css
 
 # Leave as-is
@@ -39,14 +39,14 @@ build:
 deploy-prebuilt:
 	# deploy stack
 	aws cloudformation --region $(AWS_REGION) deploy \
-		--parameter-overrides FunctionName=$(FN_NAME) S3Bucket=$(S3_BUCKET) S3Key=$(S3_KEY) AccountId=$(AWS_ACCOUNT_ID) SSMSource=$(SSM_KEY_PREFIX) KeyId=$(SSM_KEY_ID) \
+		--parameter-overrides FunctionName=$(FN_NAME) S3Bucket=$(S3_BUCKET) S3Key=$(S3_KEY) AccountId=$(AWS_ACCOUNT_ID) SSMSource=$(SSM_KEY_PREFIX) KeyId=$(SSM_KEY_ID) Region=$(AWS_REGION) \
 		--template-file $(CF_TEMPLATE) --stack-name $(FN_NAME) \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 
 deploy-source: dependencies docker upload
 	# deploy stack
 	aws cloudformation --region $(AWS_REGION) deploy \
-		--parameter-overrides FunctionName=$(FN_NAME) S3Bucket=$(S3_BUCKET) S3Key=$(S3_KEY) AccountId=$(AWS_ACCOUNT_ID) SSMSource=$(SSM_KEY_PREFIX) KeyId=$(SSM_KEY_ID) \
+		--parameter-overrides FunctionName=$(FN_NAME) S3Bucket=$(S3_BUCKET) S3Key=$(S3_KEY) AccountId=$(AWS_ACCOUNT_ID) SSMSource=$(SSM_KEY_PREFIX) KeyId=$(SSM_KEY_ID) Region=$(AWS_REGION) \
 		--template-file $(CF_TEMPLATE) --stack-name $(FN_NAME) \
 		--capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM
 
