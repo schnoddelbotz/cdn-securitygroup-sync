@@ -60,6 +60,12 @@ func run() {
 		for _, cidr := range ssMap.CurrentCidrs {
 			ssCidrs[cidr] = struct{}{}
 		}
+		// add proposed (i.e. non-acknowledged) CIDRs
+		for _, cidr := range ssMap.ProposedCidrs {
+			if _, ok := ssCidrs[cidr]; !ok {
+				ssCidrs[cidr] = struct{}{}
+			}
+		}
 	}
 
 	// compare current with desired state

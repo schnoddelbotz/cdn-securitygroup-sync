@@ -16,9 +16,10 @@ type siteShieldMaps struct {
 }
 
 type siteShieldMap struct {
-	Acknowledged bool     `json:"acknowledged"`
-	ID           int      `json:"id"`
-	CurrentCidrs []string `json:"currentCidrs"`
+	Acknowledged  bool     `json:"acknowledged"`
+	ID            int      `json:"id"`
+	CurrentCidrs  []string `json:"currentCidrs"`
+	ProposedCidrs []string `json:"proposedCidrs"`
 }
 
 func getAkamaiConfig() edgegrid.Config {
